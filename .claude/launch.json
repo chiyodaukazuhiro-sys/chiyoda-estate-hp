@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "chiyoda-dev",
+      "runtimeExecutable": "C:\\Users\\chiyo\\nodejs\\node.exe",
+      "runtimeArgs": ["C:\\Users\\chiyo\\projects\\chiyoda-estate-hp\\start-dev.js"],
+      "port": 3000
+    }
+  ]
+}

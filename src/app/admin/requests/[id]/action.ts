@@ -1,0 +1,112 @@
+"use server";
+
+import { prisma } from "@/lib/db";
+import { revalidatePath } from "next/cache";
+
+export type NoteActionState = {
+  success: boolean;
+  error?: string;
+};
+
+const STATUSES = ["新規", "対応中", "物件提案済", "成約", "見送り"] as const;
+
+export async function addNote(
+  _prev: NoteActionState,
+  formData: FormData,
+): Promise<NoteActionState> {
+  const requestId = formData.get("requestId") as string;
+  const content = (formData.get("content") as string)?.trim();
+  const statusRaw = formData.get("status") as string;
+
+  if (!content) {
+    return { success: false, error: "メモを入力してください。" };
+  }
+
+  const status = STATUSES.includes(statusRaw as (typeof STATUSES)[number])
+    ? statusRaw
+    : null;
+
+  // Save note
+  await prisma.requestNote.create({
+    data: {
+      requestId,
+      content,
+      status,
+    },
+  });
+
+  // Update request status if changed
+  if (status) {
+    await prisma.propertyRequest.update({
+      where: { id: requestId },
+      data: { status },
+    });
+  }
+
+  revalidatePath(`/admin/requests/${requestId}`);
+  revalidatePath("/admin/requests");
+  revalidatePath("/admin");
+
+  return { success: true };
+}
+
+export type EditActionState = {
+  success: boolean;
+  error?: string;
+};
+
+export async function updateRequest(
+  _prev: EditActionState,
+  formData: FormData,
+): Promise<EditActionState> {
+  const requestId = formData.get("requestId") as string;
+
+  if (!requestId) {
+    return { success: false, error: "リクエストIDが不正です。" };
+  }
+
+  const area = (formData.get("area") as string)?.trim();
+  const excludeArea = (formData.get("excludeArea") as string)?.trim() || null;
+  const budgetMinRaw = formData.get("budgetMin") as string;
+  const budgetMaxRaw = formData.get("budgetMax") as string;
+  const yieldMinRaw = formData.get("yieldMin") as string;
+  const landAreaMinRaw = formData.get("landAreaMin") as string;
+  const buildingAreaMinRaw = formData.get("buildingAreaMin") as string;
+  const maxAgeRaw = formData.get("maxAge") as string;
+  const structure = (formData.get("structure") as string)?.trim() || null;
+  const parking = (formData.get("parking") as string)?.trim() || null;
+  const propertyType = (formData.get("propertyType") as string)?.trim();
+  const purpose = (formData.get("purpose") as string)?.trim();
+  const urgency = (formData.get("urgency") as string)?.trim();
+  const notes = (formData.get("notes") as string)?.trim() || null;
+
+  if (!area || !propertyType || !purpose || !urgency) {
+    return { success: false, error: "必須項目を入力してください。" };
+  }
+
+  await prisma.propertyRequest.update({
+    where: { id: requestId },
+    data: {
+      propertyType,
+      purpose,
+      area,
+      excludeArea,
+      budgetMin: budgetMinRaw ? parseInt(budgetMinRaw) : null,
+      budgetMax: budgetMaxRaw ? parseInt(budgetMaxRaw) : null,
+      yieldMin: yieldMinRaw ? parseFloat(yieldMinRaw) : null,
+      landAreaMin: landAreaMinRaw ? parseInt(landAreaMinRaw) : null,
+      buildingAreaMin: buildingAreaMinRaw ? parseInt(buildingAreaMinRaw) : null,
+      maxAge: maxAgeRaw ? parseInt(maxAgeRaw) : null,
+      structure,
+      parking,
+      urgency,
+      notes,
+    },
+  });
+
+  revalidatePath(`/admin/requests/${requestId}`);
+  revalidatePath("/admin/requests");
+  revalidatePath("/admin");
+
+  return { success: true };
+}

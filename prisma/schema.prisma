@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Member {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  password         String
+  companyName      String
+  contactName      String
+  category         String   // 金融機関, 士業, 医療関係, その他
+  phone            String?
+  searchType       String?  // "self" = ご自身, "proxy" = 代理（紹介先のお客様）
+  isFormSubmission Boolean  @default(false) // true = Googleフォーム経由の自動作成
+  createdAt        DateTime @default(now())
+
+  requests       PropertyRequest[]
+  passwordResets PasswordReset[]
+}
+
+model PasswordReset {
+  id        String   @id @default(cuid())
+  memberId  String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id])
+}
+
+model PropertyRequest {
+  id           String   @id @default(cuid())
+  memberId     String
+  member       Member   @relation(fields: [memberId], references: [id])
+  propertyType String   // カンマ区切り: 土地,マンション,一戸建,収益物件,事業用
+  purpose      String   // 自己居住, 投資, 事業用, 社宅, 開業, その他
+  area         String   // 希望エリア
+  excludeArea  String?  // 除外エリア
+  budgetMin    Int?     // 万円
+  budgetMax    Int?     // 万円
+  yieldMin     Float?   // 希望利回り%
+  landAreaMin  Int?     // 土地面積㎡以上
+  buildingAreaMin Int?  // 建物面積㎡以上
+  maxAge       Int?     // 築年数以内
+  structure    String?  // RC, SRC, S造, 木造, 指定なし
+  parking      String?  // 必要, 不要, あれば可
+  urgency      String   // 急ぎ, 3ヶ月以内, 半年以内, 情報収集中
+  notes        String?  // その他要望
+  status       String   @default("新規") // 新規, 対応中, 物件提案済, 成約, 見送り
+  syncSource   String?  // "hp" | "sheet" データ元
+  sheetRowIndex Int?    // Googleシートの行番号
+  syncedAt     DateTime? // 最終同期日時
+  createdAt    DateTime @default(now())
+
+  requestNotes RequestNote[]
+}
+
+model RequestNote {
+  id        String   @id @default(cuid())
+  requestId String
+  request   PropertyRequest @relation(fields: [requestId], references: [id])
+  content   String   // メモ内容
+  status    String?  // このメモで変更されたステータス（null=変更なし）
+  createdAt DateTime @default(now())
+}

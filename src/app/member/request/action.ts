@@ -1,0 +1,136 @@
+"use server";
+
+import { prisma } from "@/lib/db";
+import { getCurrentMember } from "@/lib/auth";
+import { appendRequestToSheet } from "@/lib/sheets";
+import nodemailer from "nodemailer";
+
+export type RequestState = {
+  success: boolean;
+  error?: string;
+};
+
+export async function submitPropertyRequest(
+  _prev: RequestState,
+  formData: FormData
+): Promise<RequestState> {
+  const auth = await getCurrentMember();
+  if (!auth) {
+    return { success: false, error: "ログインが必要です。" };
+  }
+
+  const propertyTypes = formData.getAll("propertyType") as string[];
+  const purpose = formData.get("purpose") as string;
+  const area = formData.get("area") as string;
+  const excludeArea = (formData.get("excludeArea") as string) || undefined;
+  const budgetMin = formData.get("budgetMin") ? Number(formData.get("budgetMin")) : undefined;
+  const budgetMax = formData.get("budgetMax") ? Number(formData.get("budgetMax")) : undefined;
+  const yieldMin = formData.get("yieldMin") ? Number(formData.get("yieldMin")) : undefined;
+  const landAreaMin = formData.get("landAreaMin") ? Number(formData.get("landAreaMin")) : undefined;
+  const buildingAreaMin = formData.get("buildingAreaMin") ? Number(formData.get("buildingAreaMin")) : undefined;
+  const maxAge = formData.get("maxAge") ? Number(formData.get("maxAge")) : undefined;
+  const structure = (formData.get("structure") as string) || undefined;
+  const parking = (formData.get("parking") as string) || undefined;
+  const urgency = formData.get("urgency") as string;
+  const notes = (formData.get("notes") as string) || undefined;
+
+  if (propertyTypes.length === 0 || !purpose || !area || !urgency) {
+    return { success: false, error: "必須項目を入力してください。" };
+  }
+
+  const propertyType = propertyTypes.join(",");
+
+  const request = await prisma.propertyRequest.create({
+    data: {
+      memberId: auth.memberId,
+      propertyType,
+      purpose,
+      area,
+      excludeArea,
+      budgetMin,
+      budgetMax,
+      yieldMin,
+      landAreaMin,
+      buildingAreaMin,
+      maxAge,
+      structure,
+      parking,
+      urgency,
+      notes,
+    },
+  });
+
+  // Send email notification
+  const member = await prisma.member.findUnique({ where: { id: auth.memberId } });
+  if (member) {
+    const fmt = (v: number | null | undefined, unit: string) =>
+      v != null ? `${v.toLocaleString()}${unit}` : "指定なし";
+
+    const mailBody = `
+【物件リクエスト】${member.contactName}様（${member.category}）
+会社名: ${member.companyName}
+メール: ${member.email}
+電話: ${member.phone || "未登録"}
+
+━━━ 物件リクエスト条件 ━━━
+
+■ 物件種別: ${propertyType.replace(/,/g, " / ")}
+■ 利用目的: ${purpose}
+■ 希望エリア: ${area}
+■ 除外エリア: ${excludeArea || "なし"}
+■ 予算: ${fmt(budgetMin, "万円")} ～ ${fmt(budgetMax, "万円")}
+■ 希望利回り: ${yieldMin ? `${yieldMin}%以上` : "指定なし"}
+■ 土地面積: ${fmt(landAreaMin, "㎡以上")}
+■ 建物面積: ${fmt(buildingAreaMin, "㎡以上")}
+■ 築年数: ${maxAge ? `${maxAge}年以内` : "指定なし"}
+■ 構造: ${structure || "指定なし"}
+■ 駐車場: ${parking || "指定なし"}
+■ 緊急度: ${urgency}
+
+■ その他要望:
+${notes || "なし"}
+
+━━━━━━━━━━━━━━━━
+リクエストID: ${request.id}
+送信日時: ${new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" })}
+`.trim();
+
+    try {
+      const transporter = nodemailer.createTransport({
+        service: "gmail",
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_APP_PASSWORD,
+        },
+      });
+
+      await transporter.sendMail({
+        from: `"チヨダエステート HP" <${process.env.GMAIL_USER}>`,
+        to: "chiyoda.u.kazuhiro@gmail.com",
+        subject: `【物件リクエスト】${member.contactName}様（${member.category}）- ${propertyType.replace(/,/g, "・")}`,
+        text: mailBody,
+      });
+    } catch (err) {
+      console.error("Email send error:", err);
+      // Don't fail the request if email fails - data is saved in DB
+    }
+
+    // Sync to Google Sheet (fire-and-forget)
+    try {
+      const sheetRowIndex = await appendRequestToSheet(request, member);
+      await prisma.propertyRequest.update({
+        where: { id: request.id },
+        data: {
+          syncSource: "hp",
+          sheetRowIndex: sheetRowIndex || null,
+          syncedAt: new Date(),
+        },
+      });
+    } catch (err) {
+      console.error("Sheet sync error:", err);
+      // Don't fail the request if sheet sync fails - data is saved in DB
+    }
+  }
+
+  return { success: true };
+}

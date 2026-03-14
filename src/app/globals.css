@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #1a1a2e;
+  --color-navy-light: #16213e;
+  --color-navy-dark: #0f0f1e;
+  --color-gold: #c9a84c;
+  --color-gold-light: #d4b96a;
+  --color-gold-dark: #a8893a;
+  --color-cream: #f5f0e8;
+  --font-serif: "Shippori Mincho", "Cormorant Garamond", serif;
+  --font-sans: "Zen Kaku Gothic New", sans-serif;
+  --font-display: "Cormorant Garamond", "Shippori Mincho", serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: #333;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
+}
+
+/* English display text (logos, section labels) */
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Refined letter spacing for body text */
+body {
+  letter-spacing: 0.02em;
+  font-weight: 400;
+}
