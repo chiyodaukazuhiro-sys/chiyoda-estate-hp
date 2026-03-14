@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaNeonHttp } from "@prisma/adapter-neon";
-import { neon } from "@neondatabase/serverless";
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 
@@ -11,9 +10,7 @@ function createPrismaClient() {
       `DATABASE_URL is not set. Available env keys: ${Object.keys(process.env).filter(k => k.includes('DATABASE') || k.includes('POSTGRES')).join(', ') || 'none matching'}`
     );
   }
-  const sql = neon(connectionString);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const adapter = new PrismaNeonHttp(sql as any);
+  const adapter = new PrismaNeonHttp(connectionString, {});
   return new PrismaClient({ adapter });
 }
 
