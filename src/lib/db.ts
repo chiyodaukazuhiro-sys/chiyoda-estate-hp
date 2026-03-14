@@ -10,7 +10,8 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
 function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL!;
   const pool = new Pool({ connectionString });
-  const adapter = new PrismaNeon(pool);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adapter = new PrismaNeon(pool as any);
   return new PrismaClient({ adapter });
 }
 
