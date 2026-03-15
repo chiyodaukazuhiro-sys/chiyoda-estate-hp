@@ -3,6 +3,7 @@ import { getCurrentMember } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import MemberInfo from "./member-info";
+import DeleteRequestButton from "./DeleteRequestButton";
 
 export default async function MemberDashboard() {
   const auth = await getCurrentMember();
@@ -89,6 +90,13 @@ export default async function MemberDashboard() {
                       <span className="text-gray-400">緊急度:</span>{" "}
                       {req.urgency}
                     </p>
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <DeleteRequestButton
+                      requestId={req.id}
+                      propertyType={req.propertyType}
+                      area={req.area}
+                    />
                   </div>
                 </div>
               ))}

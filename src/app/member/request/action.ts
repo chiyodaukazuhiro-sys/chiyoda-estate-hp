@@ -2,7 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { getCurrentMember } from "@/lib/auth";
-import { appendRequestToSheet } from "@/lib/sheets";
+import { appendRequestToSheet, deleteSheetRows } from "@/lib/sheets";
+import { revalidatePath } from "next/cache";
 import nodemailer from "nodemailer";
 
 export type RequestState = {
@@ -133,6 +134,53 @@ ${notes || "なし"}
       // Don't fail the request if sheet sync fails - data is saved in DB
     }
   }
+
+  return { success: true };
+}
+
+// --- リクエスト削除 ---
+export async function deleteRequest(requestId: string): Promise<{ success: boolean; error?: string }> {
+  const auth = await getCurrentMember();
+  if (!auth) {
+    return { success: false, error: "ログインが必要です。" };
+  }
+
+  // リクエストが本人のものか確認
+  const request = await prisma.propertyRequest.findUnique({
+    where: { id: requestId },
+    select: { memberId: true, sheetRowIndex: true, syncSource: true },
+  });
+
+  if (!request) {
+    return { success: false, error: "リクエストが見つかりません。" };
+  }
+
+  if (request.memberId !== auth.memberId) {
+    return { success: false, error: "このリクエストを削除する権限がありません。" };
+  }
+
+  // Google Sheetから該当行を削除（sync済みの場合）
+  if (request.sheetRowIndex) {
+    try {
+      const sheetName = request.syncSource === "sheet" ? "フォームの回答 1" : "フォームの回答 2";
+      await deleteSheetRows(sheetName, [request.sheetRowIndex]);
+    } catch (err) {
+      console.error("Sheet row delete error:", err);
+      // シート削除失敗してもDB削除は続行
+    }
+  }
+
+  // RequestNote → PropertyRequest の順で削除（FK制約対応）
+  await prisma.requestNote.deleteMany({
+    where: { requestId },
+  });
+  await prisma.propertyRequest.delete({
+    where: { id: requestId },
+  });
+
+  revalidatePath("/member");
+  revalidatePath("/admin/requests");
+  revalidatePath("/admin");
 
   return { success: true };
 }
