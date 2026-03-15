@@ -50,6 +50,7 @@ export interface SheetRow {
   parking: string;
   urgency: string;
   notes: string;
+  delegateInfo: string;
   hpId: string;
 }
 
@@ -84,6 +85,7 @@ interface ColumnMap {
   parking: number;
   urgency: number;
   notes: number;
+  delegateInfo: number;
   hpId: number;
 }
 
@@ -108,6 +110,7 @@ function buildColumnMap(headers: string[]): ColumnMap {
     parking: findColumnIndex(headers, "駐車場"),
     urgency: findColumnIndex(headers, "緊急度"),
     notes: findColumnIndex(headers, "その他こだわり", "その他ご要望"),
+    delegateInfo: findColumnIndex(headers, "委任先"),
     hpId: findColumnIndex(headers, HP_ID_HEADER),
   };
 }
@@ -187,6 +190,28 @@ async function ensureHpIdColumn(sheetName: string): Promise<{ colMap: ColumnMap;
   return { colMap, hpIdColLetter: newColLetter };
 }
 
+// --- 追加ヘッダー列の確保（汎用） ---
+async function ensureColumn(sheetName: string, headerName: string, colMap: ColumnMap, colKey: keyof ColumnMap): Promise<ColumnMap> {
+  if (colMap[colKey] >= 0) return colMap;
+
+  const sheets = getSheetsClient();
+  const { totalColumns } = await loadHeaders(sheetName);
+
+  // 最後の列の次に追加
+  const newColLetter = colIndexToLetter(totalColumns);
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `'${sheetName}'!${newColLetter}1`,
+    valueInputOption: "RAW",
+    requestBody: { values: [[headerName]] },
+  });
+
+  clearHeaderCache(sheetName);
+  const reloaded = await loadHeaders(sheetName);
+  return reloaded.colMap;
+}
+
 // --- 単一シートからの読み込み ---
 async function readSheetTab(sheetName: string): Promise<SheetRow[]> {
   clearHeaderCache(sheetName); // 毎回最新ヘッダーを読む
@@ -225,6 +250,7 @@ async function readSheetTab(sheetName: string): Promise<SheetRow[]> {
     parking: getCell(row, colMap.parking),
     urgency: getCell(row, colMap.urgency),
     notes: getCell(row, colMap.notes),
+    delegateInfo: getCell(row, colMap.delegateInfo),
     hpId: getCell(row, colMap.hpId),
   }));
 }
@@ -321,6 +347,7 @@ interface RequestForSheet {
   parking?: string | null;
   urgency: string;
   notes?: string | null;
+  delegateInfo?: string | null;
   createdAt: Date;
 }
 
@@ -337,7 +364,8 @@ export async function appendRequestToSheet(
 ): Promise<number> {
   // HP→シート書き込みは「フォームの回答 2」（詳細フォーム）に追記
   const writeSheetName = SHEET_NAMES[1] || SHEET_NAMES[0];
-  const { colMap, hpIdColLetter } = await ensureHpIdColumn(writeSheetName);
+  let { colMap } = await ensureHpIdColumn(writeSheetName);
+  colMap = await ensureColumn(writeSheetName, "委任先", colMap, "delegateInfo");
   const sheets = getSheetsClient();
 
   // ヘッダー数分の空配列を用意し、カラムマップに従って値をセット
@@ -371,6 +399,7 @@ export async function appendRequestToSheet(
   setCol(colMap.parking, request.parking || "");
   setCol(colMap.urgency, request.urgency);
   setCol(colMap.notes, request.notes || "");
+  setCol(colMap.delegateInfo, request.delegateInfo || "");
   setCol(colMap.hpId, request.id);
 
   const lastColLetter = colIndexToLetter(rowSize - 1);
@@ -432,6 +461,7 @@ export function sheetRowToRequestData(row: SheetRow) {
     parking: row.parking || null,
     urgency: row.urgency || "情報収集中",
     notes: row.notes || null,
+    delegateInfo: row.delegateInfo || null,
     status: "新規",
     syncSource: "sheet" as const,
   };
