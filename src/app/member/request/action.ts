@@ -33,6 +33,7 @@ export async function submitPropertyRequest(
   const parking = (formData.get("parking") as string) || undefined;
   const urgency = formData.get("urgency") as string;
   const notes = (formData.get("notes") as string) || undefined;
+  const delegateInfo = (formData.get("delegateInfo") as string) || undefined;
 
   if (propertyTypes.length === 0 || !purpose || !area || !urgency) {
     return { success: false, error: "必須項目を入力してください。" };
@@ -57,6 +58,7 @@ export async function submitPropertyRequest(
       parking,
       urgency,
       notes,
+      delegateInfo,
     },
   });
 
@@ -71,7 +73,7 @@ export async function submitPropertyRequest(
 会社名: ${member.companyName}
 メール: ${member.email}
 電話: ${member.phone || "未登録"}
-
+${delegateInfo ? `委任先: ${delegateInfo}` : ""}
 ━━━ 物件リクエスト条件 ━━━
 
 ■ 物件種別: ${propertyType.replace(/,/g, " / ")}

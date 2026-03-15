@@ -19,6 +19,7 @@ type RequestData = {
   parking: string | null;
   urgency: string;
   notes: string | null;
+  delegateInfo: string | null;
 };
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
@@ -52,6 +53,12 @@ export default function RequestConditions({ req }: { req: RequestData }) {
           編集
         </button>
       </div>
+      {req.delegateInfo && (
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3">
+          <p className="text-gray-400 text-xs mb-0.5">委任先</p>
+          <p className="text-sm font-medium whitespace-pre-wrap">{req.delegateInfo}</p>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Field label="物件種別" value={req.propertyType.replace(/,/g, " / ")} />
         <Field label="利用目的" value={req.purpose} />

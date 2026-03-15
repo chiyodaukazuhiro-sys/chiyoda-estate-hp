@@ -120,7 +120,7 @@ export default async function AdminRequestDetailPage({
           <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
             <h2 className="font-bold text-navy mb-3 text-sm tracking-wider">検索用テキスト</h2>
             <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono leading-relaxed">
-{`物件種別: ${req.propertyType.replace(/,/g, " / ")}
+{`${req.delegateInfo ? `委任先: ${req.delegateInfo}\n` : ""}物件種別: ${req.propertyType.replace(/,/g, " / ")}
 利用目的: ${req.purpose}
 エリア: ${req.area}${req.excludeArea ? `\n除外: ${req.excludeArea}` : ""}
 予算: ${fmt(req.budgetMin, "万円")} 〜 ${fmt(req.budgetMax, "万円")}${req.yieldMin ? `\n利回り: ${req.yieldMin}%以上` : ""}${req.landAreaMin ? `\n土地面積: ${req.landAreaMin}㎡以上` : ""}${req.buildingAreaMin ? `\n建物面積: ${req.buildingAreaMin}㎡以上` : ""}${req.maxAge ? `\n築年数: ${req.maxAge}年以内` : ""}

@@ -79,6 +79,7 @@ export async function updateRequest(
   const purpose = (formData.get("purpose") as string)?.trim();
   const urgency = (formData.get("urgency") as string)?.trim();
   const notes = (formData.get("notes") as string)?.trim() || null;
+  const delegateInfo = (formData.get("delegateInfo") as string)?.trim() || null;
 
   if (!area || !propertyType || !purpose || !urgency) {
     return { success: false, error: "必須項目を入力してください。" };
@@ -101,6 +102,7 @@ export async function updateRequest(
       parking,
       urgency,
       notes,
+      delegateInfo,
     },
   });
 

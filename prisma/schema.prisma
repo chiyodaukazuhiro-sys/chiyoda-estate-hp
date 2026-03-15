@@ -52,6 +52,7 @@ model PropertyRequest {
   parking      String?  // 必要, 不要, あれば可
   urgency      String   // 急ぎ, 3ヶ月以内, 半年以内, 情報収集中
   notes        String?  // その他要望
+  delegateInfo String?  // 委任先情報（代理の場合）
   status       String   @default("新規") // 新規, 対応中, 物件提案済, 成約, 見送り
   syncSource   String?  // "hp" | "sheet" データ元
   sheetRowIndex Int?    // Googleシートの行番号

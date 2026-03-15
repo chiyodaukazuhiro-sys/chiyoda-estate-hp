@@ -16,7 +16,7 @@ export default async function AdminRequestsPage({
   const requests = await prisma.propertyRequest.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    include: { member: { select: { companyName: true, contactName: true, category: true } } },
+    include: { member: { select: { companyName: true, contactName: true, category: true, searchType: true } } },
   });
 
   const urgencies = ["急ぎ", "3ヶ月以内", "半年以内", "情報収集中"];
@@ -58,6 +58,7 @@ export default async function AdminRequestsPage({
               <th className="px-6 py-3 font-medium">日付</th>
               <th className="px-6 py-3 font-medium">ソース</th>
               <th className="px-6 py-3 font-medium">会員</th>
+              <th className="px-6 py-3 font-medium">委任先</th>
               <th className="px-6 py-3 font-medium">物件種別</th>
               <th className="px-6 py-3 font-medium">エリア</th>
               <th className="px-6 py-3 font-medium">予算</th>
@@ -68,7 +69,7 @@ export default async function AdminRequestsPage({
           <tbody>
             {requests.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-8 text-center text-gray-400">
+                <td colSpan={9} className="px-6 py-8 text-center text-gray-400">
                   該当するリクエストがありません
                 </td>
               </tr>
@@ -94,6 +95,15 @@ export default async function AdminRequestsPage({
                       {req.member.companyName}
                     </Link>
                     <span className="text-gray-400 ml-1 text-xs">({req.member.category})</span>
+                  </td>
+                  <td className="px-6 py-3 text-gray-600 text-xs">
+                    {req.delegateInfo ? (
+                      <span className="inline-block max-w-[120px] truncate" title={req.delegateInfo}>
+                        {req.delegateInfo}
+                      </span>
+                    ) : req.member.searchType === "proxy" ? (
+                      <span className="text-gray-300">未入力</span>
+                    ) : "—"}
                   </td>
                   <td className="px-6 py-3">{req.propertyType.replace(/,/g, " / ")}</td>
                   <td className="px-6 py-3">{req.area}</td>

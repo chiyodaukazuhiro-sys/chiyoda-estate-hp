@@ -19,6 +19,7 @@ type RequestData = {
   parking: string | null;
   urgency: string;
   notes: string | null;
+  delegateInfo: string | null;
 };
 
 function Field({
@@ -139,6 +140,16 @@ export default function EditForm({
                 <option key={u} value={u}>{u}</option>
               ))}
             </select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="text-gray-400 text-xs mb-1 block">委任先</label>
+            <textarea
+              name="delegateInfo"
+              defaultValue={req.delegateInfo || ""}
+              rows={2}
+              placeholder="代理の場合のお客様情報"
+              className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-navy/30 focus:border-navy resize-none"
+            />
           </div>
           <div className="sm:col-span-2">
             <label className="text-gray-400 text-xs mb-1 block">その他要望</label>
