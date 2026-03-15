@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import NoteForm from "./NoteForm";
 import RequestConditions from "./RequestConditions";
+import DeleteRequestButton from "./DeleteRequestButton";
 
 function fmt(v: number | null | undefined, unit: string) {
   return v != null ? `${v.toLocaleString()}${unit}` : "指定なし";
@@ -167,6 +168,12 @@ export default async function AdminRequestDetailPage({
             {req.member.isFormSubmission && (
               <p className="text-purple-500">(Googleフォーム経由の会員)</p>
             )}
+          </div>
+          <div className="mt-6">
+            <DeleteRequestButton
+              requestId={req.id}
+              noteCount={req.requestNotes.length}
+            />
           </div>
         </div>
       </div>

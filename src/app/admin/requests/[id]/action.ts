@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { deleteSheetRows } from "@/lib/sheets";
 
 export type NoteActionState = {
   success: boolean;
@@ -111,4 +113,34 @@ export async function updateRequest(
   revalidatePath("/admin");
 
   return { success: true };
+}
+
+// --- リクエスト削除（管理者用） ---
+export async function deleteAdminRequest(requestId: string): Promise<void> {
+  const request = await prisma.propertyRequest.findUnique({
+    where: { id: requestId },
+    select: { sheetRowIndex: true, syncSource: true },
+  });
+
+  if (!request) return;
+
+  // Google Sheetから該当行を削除
+  if (request.sheetRowIndex) {
+    try {
+      const sheetName = request.syncSource === "sheet" ? "フォームの回答 1" : "フォームの回答 2";
+      await deleteSheetRows(sheetName, [request.sheetRowIndex]);
+    } catch (err) {
+      console.error("Sheet row delete error:", err);
+    }
+  }
+
+  // RequestNote → PropertyRequest の順で削除
+  await prisma.requestNote.deleteMany({ where: { requestId } });
+  await prisma.propertyRequest.delete({ where: { id: requestId } });
+
+  revalidatePath("/admin/requests");
+  revalidatePath("/admin");
+  revalidatePath("/member");
+
+  redirect("/admin/requests");
 }
