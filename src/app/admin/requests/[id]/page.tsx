@@ -64,6 +64,16 @@ export default async function AdminRequestDetailPage({
         )}
       </div>
 
+      {req.delegateInfo && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
+          <span className="text-blue-500 text-lg mt-0.5">👤</span>
+          <div>
+            <p className="text-xs text-blue-600 font-medium mb-1">委任先（代理）</p>
+            <p className="text-sm text-gray-800 whitespace-pre-wrap">{req.delegateInfo}</p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Request Details */}
         <div className="lg:col-span-2 space-y-6">

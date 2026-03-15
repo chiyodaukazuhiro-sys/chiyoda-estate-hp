@@ -210,6 +210,17 @@ export default function MemberRequestDetail({ req }: { req: RequestData }) {
         </span>
       </div>
 
+      {/* Delegate Info */}
+      {req.delegateInfo && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
+          <span className="text-blue-500 text-lg mt-0.5">👤</span>
+          <div>
+            <p className="text-xs text-blue-600 font-medium mb-1">委任先（代理）</p>
+            <p className="text-sm text-gray-800 whitespace-pre-wrap">{req.delegateInfo}</p>
+          </div>
+        </div>
+      )}
+
       {/* Conditions */}
       <div className="border border-gray-200 rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
@@ -221,12 +232,6 @@ export default function MemberRequestDetail({ req }: { req: RequestData }) {
             編集
           </button>
         </div>
-        {req.delegateInfo && (
-          <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-3">
-            <p className="text-gray-400 text-xs mb-0.5">委任先</p>
-            <p className="text-sm font-medium whitespace-pre-wrap">{req.delegateInfo}</p>
-          </div>
-        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <ViewField label="物件種別" value={req.propertyType.replace(/,/g, " / ")} />
           <ViewField label="利用目的" value={req.purpose} />
