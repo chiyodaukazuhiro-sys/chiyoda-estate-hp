@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/db";
 import { getCurrentMember } from "@/lib/auth";
-import { appendRequestToSheet, deleteSheetRows } from "@/lib/sheets";
+import { appendRequestToSheet, deleteSheetRows, updateSheetRow } from "@/lib/sheets";
 import { revalidatePath } from "next/cache";
 import nodemailer from "nodemailer";
 
@@ -237,26 +237,61 @@ export async function updateMemberRequest(
     return { success: false, error: "必須項目を入力してください。" };
   }
 
-  await prisma.propertyRequest.update({
+  const updatedData = {
+    propertyType,
+    purpose,
+    area,
+    excludeArea,
+    budgetMin: budgetMinRaw ? parseInt(budgetMinRaw) : null,
+    budgetMax: budgetMaxRaw ? parseInt(budgetMaxRaw) : null,
+    yieldMin: yieldMinRaw ? parseFloat(yieldMinRaw) : null,
+    landAreaMin: landAreaMinRaw ? parseInt(landAreaMinRaw) : null,
+    buildingAreaMin: buildingAreaMinRaw ? parseInt(buildingAreaMinRaw) : null,
+    maxAge: maxAgeRaw ? parseInt(maxAgeRaw) : null,
+    structure,
+    parking,
+    urgency,
+    notes,
+    delegateInfo,
+  };
+
+  const updatedRequest = await prisma.propertyRequest.update({
     where: { id: requestId },
-    data: {
-      propertyType,
-      purpose,
-      area,
-      excludeArea,
-      budgetMin: budgetMinRaw ? parseInt(budgetMinRaw) : null,
-      budgetMax: budgetMaxRaw ? parseInt(budgetMaxRaw) : null,
-      yieldMin: yieldMinRaw ? parseFloat(yieldMinRaw) : null,
-      landAreaMin: landAreaMinRaw ? parseInt(landAreaMinRaw) : null,
-      buildingAreaMin: buildingAreaMinRaw ? parseInt(buildingAreaMinRaw) : null,
-      maxAge: maxAgeRaw ? parseInt(maxAgeRaw) : null,
-      structure,
-      parking,
-      urgency,
-      notes,
-      delegateInfo,
-    },
+    data: updatedData,
+    include: { member: true },
   });
+
+  // シート同期（sheetRowIndexがある場合は差分更新）
+  if (updatedRequest.sheetRowIndex) {
+    try {
+      await updateSheetRow(
+        updatedRequest.sheetRowIndex,
+        updatedRequest.syncSource,
+        {
+          id: updatedRequest.id,
+          propertyType: updatedRequest.propertyType,
+          purpose: updatedRequest.purpose,
+          area: updatedRequest.area,
+          excludeArea: updatedRequest.excludeArea,
+          budgetMin: updatedRequest.budgetMin,
+          budgetMax: updatedRequest.budgetMax,
+          yieldMin: updatedRequest.yieldMin,
+          landAreaMin: updatedRequest.landAreaMin,
+          buildingAreaMin: updatedRequest.buildingAreaMin,
+          maxAge: updatedRequest.maxAge,
+          structure: updatedRequest.structure,
+          parking: updatedRequest.parking,
+          urgency: updatedRequest.urgency,
+          notes: updatedRequest.notes,
+          delegateInfo: updatedRequest.delegateInfo,
+          createdAt: updatedRequest.createdAt,
+        },
+        updatedRequest.member,
+      );
+    } catch (err) {
+      console.error("Sheet sync error on update:", err);
+    }
+  }
 
   revalidatePath(`/member/request/${requestId}`);
   revalidatePath("/member");

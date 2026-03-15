@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { deleteSheetRows } from "@/lib/sheets";
+import { deleteSheetRows, updateSheetRow } from "@/lib/sheets";
 
 export type NoteActionState = {
   success: boolean;
@@ -87,7 +87,7 @@ export async function updateRequest(
     return { success: false, error: "必須項目を入力してください。" };
   }
 
-  await prisma.propertyRequest.update({
+  const updatedRequest = await prisma.propertyRequest.update({
     where: { id: requestId },
     data: {
       propertyType,
@@ -106,7 +106,40 @@ export async function updateRequest(
       notes,
       delegateInfo,
     },
+    include: { member: true },
   });
+
+  // シート同期（sheetRowIndexがある場合は差分更新）
+  if (updatedRequest.sheetRowIndex) {
+    try {
+      await updateSheetRow(
+        updatedRequest.sheetRowIndex,
+        updatedRequest.syncSource,
+        {
+          id: updatedRequest.id,
+          propertyType: updatedRequest.propertyType,
+          purpose: updatedRequest.purpose,
+          area: updatedRequest.area,
+          excludeArea: updatedRequest.excludeArea,
+          budgetMin: updatedRequest.budgetMin,
+          budgetMax: updatedRequest.budgetMax,
+          yieldMin: updatedRequest.yieldMin,
+          landAreaMin: updatedRequest.landAreaMin,
+          buildingAreaMin: updatedRequest.buildingAreaMin,
+          maxAge: updatedRequest.maxAge,
+          structure: updatedRequest.structure,
+          parking: updatedRequest.parking,
+          urgency: updatedRequest.urgency,
+          notes: updatedRequest.notes,
+          delegateInfo: updatedRequest.delegateInfo,
+          createdAt: updatedRequest.createdAt,
+        },
+        updatedRequest.member,
+      );
+    } catch (err) {
+      console.error("Sheet sync error on update:", err);
+    }
+  }
 
   revalidatePath(`/admin/requests/${requestId}`);
   revalidatePath("/admin/requests");

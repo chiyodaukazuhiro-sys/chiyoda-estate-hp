@@ -36,6 +36,7 @@ export interface SheetRow {
   companyName: string;
   contactName: string;
   category: string;
+  phone: string;
   propertyType: string;
   purpose: string;
   area: string;
@@ -71,6 +72,7 @@ interface ColumnMap {
   companyName: number;
   contactName: number;
   category: number;
+  phone: number;
   propertyType: number;
   purpose: number;
   area: number;
@@ -96,6 +98,7 @@ function buildColumnMap(headers: string[]): ColumnMap {
     companyName: findColumnIndex(headers, "会社名"),
     contactName: findColumnIndex(headers, "ご担当者名"),
     category: findColumnIndex(headers, "顧客情報"),
+    phone: findColumnIndex(headers, "電話番号", "TEL", "携帯"),
     propertyType: findColumnIndex(headers, "希望条件", "物件種別"),
     purpose: findColumnIndex(headers, "利用目的"),
     area: findColumnIndex(headers, "エリア", "希望エリア"),
@@ -236,6 +239,7 @@ async function readSheetTab(sheetName: string): Promise<SheetRow[]> {
     companyName: getCell(row, colMap.companyName),
     contactName: getCell(row, colMap.contactName),
     category: getCell(row, colMap.category),
+    phone: getCell(row, colMap.phone),
     propertyType: getCell(row, colMap.propertyType),
     purpose: getCell(row, colMap.purpose),
     area: getCell(row, colMap.area),
@@ -356,6 +360,7 @@ interface MemberForSheet {
   companyName: string;
   contactName: string;
   category: string;
+  phone?: string | null;
 }
 
 export async function appendRequestToSheet(
@@ -366,6 +371,7 @@ export async function appendRequestToSheet(
   const writeSheetName = SHEET_NAMES[1] || SHEET_NAMES[0];
   let { colMap } = await ensureHpIdColumn(writeSheetName);
   colMap = await ensureColumn(writeSheetName, "委任先", colMap, "delegateInfo");
+  colMap = await ensureColumn(writeSheetName, "電話番号", colMap, "phone");
   const sheets = getSheetsClient();
 
   // ヘッダー数分の空配列を用意し、カラムマップに従って値をセット
@@ -385,6 +391,7 @@ export async function appendRequestToSheet(
   setCol(colMap.companyName, member.companyName);
   setCol(colMap.contactName, member.contactName);
   setCol(colMap.category, member.category);
+  setCol(colMap.phone, member.phone || "");
   setCol(colMap.propertyType, request.propertyType);
   setCol(colMap.purpose, request.purpose);
   setCol(colMap.area, request.area);
@@ -416,6 +423,87 @@ export async function appendRequestToSheet(
   const updatedRange = response.data.updates?.updatedRange || "";
   const match = updatedRange.match(/!A(\d+)/);
   return match ? parseInt(match[1], 10) : 0;
+}
+
+// --- シートの既存行を更新（HP編集時の差分同期） ---
+export async function updateSheetRow(
+  sheetRowIndex: number,
+  syncSource: string | null,
+  request: RequestForSheet,
+  member: MemberForSheet,
+): Promise<void> {
+  const sheetName = syncSource === "sheet" ? SHEET_NAMES[0] : (SHEET_NAMES[1] || SHEET_NAMES[0]);
+  clearHeaderCache(sheetName);
+  let { colMap } = await ensureHpIdColumn(sheetName);
+  colMap = await ensureColumn(sheetName, "委任先", colMap, "delegateInfo");
+  colMap = await ensureColumn(sheetName, "電話番号", colMap, "phone");
+
+  const sheets = getSheetsClient();
+
+  // 現在のシート行を読み取って差分チェック
+  const { totalColumns } = await loadHeaders(sheetName);
+  const lastCol = colIndexToLetter(Math.max(totalColumns - 1, 0));
+  const currentResponse = await sheets.spreadsheets.values.get({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `'${sheetName}'!A${sheetRowIndex}:${lastCol}${sheetRowIndex}`,
+  });
+  const currentRow = (currentResponse.data.values?.[0] || []) as string[];
+
+  // 更新用の行を構築（差分があるセルだけではなく、全フィールドを書き込む）
+  const rowSize = Math.max(totalColumns, Object.values(colMap).reduce((max, v) => Math.max(max, v), 0) + 1);
+  const newRow: string[] = new Array(rowSize).fill("");
+
+  // 既存データをコピー（シート元来のデータを保持）
+  for (let i = 0; i < currentRow.length && i < rowSize; i++) {
+    newRow[i] = currentRow[i] || "";
+  }
+
+  // HP側のデータで上書き
+  function setCol(index: number, value: string) {
+    if (index >= 0 && index < newRow.length) newRow[index] = value;
+  }
+
+  setCol(colMap.email, member.email);
+  setCol(colMap.companyName, member.companyName);
+  setCol(colMap.contactName, member.contactName);
+  setCol(colMap.category, member.category);
+  setCol(colMap.phone, member.phone || "");
+  setCol(colMap.propertyType, request.propertyType);
+  setCol(colMap.purpose, request.purpose);
+  setCol(colMap.area, request.area);
+  setCol(colMap.excludeArea, request.excludeArea || "");
+  setCol(colMap.budgetMin, request.budgetMin?.toString() || "");
+  setCol(colMap.budgetMax, request.budgetMax?.toString() || "");
+  setCol(colMap.yieldMin, request.yieldMin?.toString() || "");
+  setCol(colMap.landAreaMin, request.landAreaMin?.toString() || "");
+  setCol(colMap.buildingAreaMin, request.buildingAreaMin?.toString() || "");
+  setCol(colMap.maxAge, request.maxAge?.toString() || "");
+  setCol(colMap.structure, request.structure || "");
+  setCol(colMap.parking, request.parking || "");
+  setCol(colMap.urgency, request.urgency);
+  setCol(colMap.notes, request.notes || "");
+  setCol(colMap.delegateInfo, request.delegateInfo || "");
+  setCol(colMap.hpId, request.id);
+
+  // 差分チェック: 変更があるか確認
+  let hasDiff = false;
+  for (let i = 0; i < newRow.length; i++) {
+    const current = i < currentRow.length ? (currentRow[i] || "") : "";
+    if (newRow[i] !== current) {
+      hasDiff = true;
+      break;
+    }
+  }
+
+  if (!hasDiff) return; // 差分なしならスキップ
+
+  // シート行を上書き
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: SPREADSHEET_ID,
+    range: `'${sheetName}'!A${sheetRowIndex}:${colIndexToLetter(rowSize - 1)}${sheetRowIndex}`,
+    valueInputOption: "RAW",
+    requestBody: { values: [newRow] },
+  });
 }
 
 // --- ヘルパー: 全角→半角変換 ---
