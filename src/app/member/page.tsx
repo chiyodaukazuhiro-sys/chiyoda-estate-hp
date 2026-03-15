@@ -3,7 +3,6 @@ import { getCurrentMember } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import Link from "next/link";
 import MemberInfo from "./member-info";
-import DeleteRequestButton from "./DeleteRequestButton";
 
 export default async function MemberDashboard() {
   const auth = await getCurrentMember();
@@ -58,9 +57,10 @@ export default async function MemberDashboard() {
           ) : (
             <div className="space-y-4">
               {member.requests.map((req) => (
-                <div
+                <Link
                   key={req.id}
-                  className="border border-gray-200 rounded-lg p-5"
+                  href={`/member/request/${req.id}`}
+                  className="block border border-gray-200 rounded-lg p-5 hover:border-navy/30 hover:shadow-sm transition-all"
                 >
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-sm font-bold text-navy">
@@ -92,13 +92,11 @@ export default async function MemberDashboard() {
                     </p>
                   </div>
                   <div className="flex justify-end mt-2">
-                    <DeleteRequestButton
-                      requestId={req.id}
-                      propertyType={req.propertyType}
-                      area={req.area}
-                    />
+                    <span className="text-xs text-gray-400">
+                      詳細を見る →
+                    </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

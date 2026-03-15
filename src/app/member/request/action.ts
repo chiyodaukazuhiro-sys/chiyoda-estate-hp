@@ -184,3 +184,84 @@ export async function deleteRequest(requestId: string): Promise<{ success: boole
 
   return { success: true };
 }
+
+// --- リクエスト更新（会員用） ---
+export type MemberEditState = {
+  success: boolean;
+  error?: string;
+};
+
+export async function updateMemberRequest(
+  _prev: MemberEditState,
+  formData: FormData,
+): Promise<MemberEditState> {
+  const auth = await getCurrentMember();
+  if (!auth) {
+    return { success: false, error: "ログインが必要です。" };
+  }
+
+  const requestId = formData.get("requestId") as string;
+  if (!requestId) {
+    return { success: false, error: "リクエストIDが不正です。" };
+  }
+
+  // 本人確認
+  const existing = await prisma.propertyRequest.findUnique({
+    where: { id: requestId },
+    select: { memberId: true },
+  });
+  if (!existing) {
+    return { success: false, error: "リクエストが見つかりません。" };
+  }
+  if (existing.memberId !== auth.memberId) {
+    return { success: false, error: "このリクエストを編集する権限がありません。" };
+  }
+
+  const area = (formData.get("area") as string)?.trim();
+  const excludeArea = (formData.get("excludeArea") as string)?.trim() || null;
+  const budgetMinRaw = formData.get("budgetMin") as string;
+  const budgetMaxRaw = formData.get("budgetMax") as string;
+  const yieldMinRaw = formData.get("yieldMin") as string;
+  const landAreaMinRaw = formData.get("landAreaMin") as string;
+  const buildingAreaMinRaw = formData.get("buildingAreaMin") as string;
+  const maxAgeRaw = formData.get("maxAge") as string;
+  const structure = (formData.get("structure") as string)?.trim() || null;
+  const parking = (formData.get("parking") as string)?.trim() || null;
+  const propertyType = (formData.get("propertyType") as string)?.trim();
+  const purpose = (formData.get("purpose") as string)?.trim();
+  const urgency = (formData.get("urgency") as string)?.trim();
+  const notes = (formData.get("notes") as string)?.trim() || null;
+  const delegateInfo = (formData.get("delegateInfo") as string)?.trim() || null;
+
+  if (!area || !propertyType || !purpose || !urgency) {
+    return { success: false, error: "必須項目を入力してください。" };
+  }
+
+  await prisma.propertyRequest.update({
+    where: { id: requestId },
+    data: {
+      propertyType,
+      purpose,
+      area,
+      excludeArea,
+      budgetMin: budgetMinRaw ? parseInt(budgetMinRaw) : null,
+      budgetMax: budgetMaxRaw ? parseInt(budgetMaxRaw) : null,
+      yieldMin: yieldMinRaw ? parseFloat(yieldMinRaw) : null,
+      landAreaMin: landAreaMinRaw ? parseInt(landAreaMinRaw) : null,
+      buildingAreaMin: buildingAreaMinRaw ? parseInt(buildingAreaMinRaw) : null,
+      maxAge: maxAgeRaw ? parseInt(maxAgeRaw) : null,
+      structure,
+      parking,
+      urgency,
+      notes,
+      delegateInfo,
+    },
+  });
+
+  revalidatePath(`/member/request/${requestId}`);
+  revalidatePath("/member");
+  revalidatePath("/admin/requests");
+  revalidatePath("/admin");
+
+  return { success: true };
+}
