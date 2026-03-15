@@ -308,6 +308,89 @@ export async function resyncToSheet(): Promise<SyncResult> {
   return result;
 }
 
+// --- HP → スプレッドシート 全件再同期（同期済み含む） ---
+export async function resyncAllToSheet(): Promise<SyncResult> {
+  const { appendRequestToSheet, updateSheetRow } = await import("@/lib/sheets");
+
+  const result: SyncResult = {
+    success: false,
+    imported: 0,
+    updated: 0,
+    deleted: 0,
+    skipped: 0,
+    errors: [],
+    message: "",
+  };
+
+  try {
+    const allRequests = await prisma.propertyRequest.findMany({
+      include: { member: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    for (const req of allRequests) {
+      try {
+        if (req.sheetRowIndex) {
+          // 既存行を更新
+          await updateSheetRow(
+            req.sheetRowIndex,
+            req.syncSource,
+            {
+              id: req.id,
+              propertyType: req.propertyType,
+              purpose: req.purpose,
+              area: req.area,
+              excludeArea: req.excludeArea,
+              budgetMin: req.budgetMin,
+              budgetMax: req.budgetMax,
+              yieldMin: req.yieldMin,
+              landAreaMin: req.landAreaMin,
+              buildingAreaMin: req.buildingAreaMin,
+              maxAge: req.maxAge,
+              structure: req.structure,
+              parking: req.parking,
+              urgency: req.urgency,
+              notes: req.notes,
+              delegateInfo: req.delegateInfo,
+              createdAt: req.createdAt,
+            },
+            req.member,
+          );
+          result.updated++;
+        } else {
+          // sheetRowIndexなし → 新規追記
+          const sheetRowIndex = await appendRequestToSheet(req, req.member);
+          await prisma.propertyRequest.update({
+            where: { id: req.id },
+            data: {
+              syncSource: req.syncSource || "hp",
+              sheetRowIndex: sheetRowIndex || null,
+              syncedAt: new Date(),
+            },
+          });
+          result.imported++;
+        }
+      } catch (err) {
+        const msg = `${req.id}: ${err instanceof Error ? err.message : "不明なエラー"}`;
+        result.errors.push(msg);
+      }
+    }
+
+    result.success = true;
+    const parts = [];
+    if (result.updated > 0) parts.push(`${result.updated}件更新`);
+    if (result.imported > 0) parts.push(`${result.imported}件追記`);
+    result.message = `全件再同期完了: ${parts.join("、") || "変更なし"}`;
+    if (result.errors.length > 0) {
+      result.message += `、${result.errors.length}件エラー`;
+    }
+  } catch (err) {
+    result.message = `全件再同期失敗: ${err instanceof Error ? err.message : "不明なエラー"}`;
+  }
+
+  return result;
+}
+
 // --- 接続テスト ---
 export async function testConnection(): Promise<ConnectionTestResult> {
   return await testSheetConnection();

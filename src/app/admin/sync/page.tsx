@@ -5,6 +5,7 @@ import AdminShell from "@/components/AdminShell";
 import {
   syncFromSheet,
   resyncToSheet,
+  resyncAllToSheet,
   testConnection,
   getSyncStatus,
   type SyncResult,
@@ -55,6 +56,15 @@ export default function SyncPage() {
     setLoading("push");
     setSyncResult(null);
     const result = await resyncToSheet();
+    setSyncResult(result);
+    await loadStatus();
+    setLoading("");
+  }
+
+  async function handleResyncAll() {
+    setLoading("pushAll");
+    setSyncResult(null);
+    const result = await resyncAllToSheet();
     setSyncResult(result);
     await loadStatus();
     setLoading("");
@@ -129,6 +139,17 @@ export default function SyncPage() {
               ? "同期中..."
               : "📤 HP → シート（未同期を送信）"}
           </button>
+
+          {/* 全件再同期 */}
+          <button
+            onClick={handleResyncAll}
+            disabled={loading !== ""}
+            className="px-4 py-2 rounded-md text-sm font-medium bg-orange-600 text-white hover:bg-orange-700 disabled:opacity-50 transition-colors"
+          >
+            {loading === "pushAll"
+              ? "全件同期中..."
+              : "🔄 全件再同期（HP → シート）"}
+          </button>
         </div>
 
         {/* 接続テスト結果 */}
@@ -195,7 +216,11 @@ export default function SyncPage() {
             HP会員のリクエストをスプレッドシートに反映します。未同期（syncedAtが空）のレコードが対象です。
           </p>
           <p>
-            <span className="font-medium text-gray-700">🔄 自動同期:</span>{" "}
+            <span className="font-medium text-orange-700">🔄 全件再同期:</span>{" "}
+            全リクエストの最新データをシートに強制反映します。既存行は上書き更新、未同期は新規追記されます。
+          </p>
+          <p>
+            <span className="font-medium text-gray-700">⚡ 自動同期:</span>{" "}
             HP会員がリクエスト送信時は自動でシートに追記されます。Googleフォーム回答はこのページで手動取込してください。
           </p>
         </div>
