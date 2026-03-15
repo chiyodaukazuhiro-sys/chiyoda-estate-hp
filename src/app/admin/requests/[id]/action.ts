@@ -87,7 +87,7 @@ export async function updateRequest(
     return { success: false, error: "必須項目を入力してください。" };
   }
 
-  const updatedRequest = await prisma.propertyRequest.update({
+  await prisma.propertyRequest.update({
     where: { id: requestId },
     data: {
       propertyType,
@@ -106,11 +106,16 @@ export async function updateRequest(
       notes,
       delegateInfo,
     },
+  });
+
+  // include を分離して取得（Neon HTTP アダプタはトランザクション非対応のため）
+  const updatedRequest = await prisma.propertyRequest.findUnique({
+    where: { id: requestId },
     include: { member: true },
   });
 
   // シート同期（sheetRowIndexがある場合は差分更新）
-  if (updatedRequest.sheetRowIndex) {
+  if (updatedRequest?.sheetRowIndex) {
     try {
       await updateSheetRow(
         updatedRequest.sheetRowIndex,
