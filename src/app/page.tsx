@@ -179,45 +179,193 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Proposal Sample Section */}
+      {/* Report Sample Section */}
       <section className="py-20 bg-cream">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="font-display text-gold text-sm tracking-[0.2em] mb-2">PROPOSAL SAMPLE</p>
+            <p className="font-display text-gold text-sm tracking-[0.2em] mb-2">REPORT SAMPLE</p>
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-navy mb-4">
-              提案資料のご紹介
+              お届けする資料のご紹介
             </h2>
             <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-              ご紹介パートナー様にお渡ししている提案資料の一部をご覧いただけます。
+              お客様専用の不動産マーケットレポートを毎月お届けしています。
               <br className="hidden sm:inline" />
-              無料の物件探し代行サービスから、ご成約までの流れをまとめています。
+              エリア相場・物件情報・まちの動きを1冊にまとめた、オーダーメイド資料です。
             </p>
           </div>
 
-          {/* Proposal Pages */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-10">
-            {[
-              { src: "/images/proposal/proposal-1.jpg", label: "サービスのご紹介", desc: "物件探し代行・無料サービス・対応エリアのご案内" },
-              { src: "/images/proposal/proposal-2.jpg", label: "ご紹介の流れ・メリット", desc: "4ステップの紹介フローと御社にとってのメリット" },
-              { src: "/images/proposal/proposal-3.jpg", label: "会社概要・お問い合わせ", desc: "当社の強みと連絡先のご案内" },
-            ].map((page, i) => (
-              <div key={i} className="group">
-                <div className="relative bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 group-hover:shadow-xl group-hover:border-gold/30 transition-all duration-300">
-                  <div className="relative aspect-[3/4]">
-                    <Image
-                      src={page.src}
-                      alt={page.label}
-                      fill
-                      className="object-cover object-top group-hover:scale-[1.02] transition-transform duration-500"
-                    />
+          {/* Report Mockup Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
+
+            {/* Card 1: Cover */}
+            <div className="group">
+              <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden group-hover:shadow-xl group-hover:border-gold/30 transition-all duration-300 aspect-[3/4] flex flex-col">
+                <div className="bg-navy h-2" />
+                <div className="flex-1 flex flex-col items-center justify-center p-5 text-center">
+                  <p className="text-gray-400 text-[10px] tracking-wider mb-4">Vol.XXXXXX</p>
+                  <div className="text-navy text-4xl font-display font-bold mb-1">03</div>
+                  <p className="text-gray-500 text-xs mb-3">弥生</p>
+                  <div className="w-10 h-px bg-gold mb-3" />
+                  <h4 className="font-serif text-sm font-bold text-navy mb-1">不動産マーケットレポート</h4>
+                  <p className="font-display text-[10px] text-gold tracking-wider mb-6">REAL ESTATE MARKET REPORT</p>
+                  <p className="font-serif text-xs text-navy/70 mb-auto">○○ 様 専用</p>
+                  <div className="w-full border-t border-gray-200 pt-3 mt-3">
+                    <p className="text-[9px] text-gray-400 font-bold">CONTENTS</p>
+                    <div className="text-[8px] text-gray-400 mt-1 space-y-0.5 text-left px-2">
+                      <p>物件一覧 ─ ご希望条件に近い参考物件</p>
+                      <p>エリア相場 ─ 坪単価推移・公示地価</p>
+                      <p>まちの動き ─ 再開発・交通情報</p>
+                      <p>ミニコラム ─ 不動産トピック</p>
+                    </div>
                   </div>
                 </div>
-                <div className="mt-4 text-center">
-                  <div className="text-gold font-display text-xs tracking-widest mb-1">PAGE {String(i + 1).padStart(2, "0")}</div>
-                  <h3 className="font-serif text-base font-bold text-navy mb-1">{page.label}</h3>
-                  <p className="text-gray-500 text-xs leading-relaxed">{page.desc}</p>
+                <div className="bg-navy px-3 py-2 text-center">
+                  <p className="text-[8px] text-gold tracking-wider">CHIYODA ESTATE</p>
                 </div>
               </div>
+              <div className="mt-3 text-center">
+                <h3 className="font-serif text-sm font-bold text-navy">表紙・目次</h3>
+                <p className="text-gray-500 text-xs">お客様専用のオーダーメイド</p>
+              </div>
+            </div>
+
+            {/* Card 2: Area Market */}
+            <div className="group">
+              <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden group-hover:shadow-xl group-hover:border-gold/30 transition-all duration-300 aspect-[3/4] flex flex-col">
+                <div className="bg-navy h-2" />
+                <div className="flex-1 p-4 flex flex-col">
+                  <p className="text-[8px] text-gray-400 mb-1">CHIYODA ESTATE | 不動産マーケットレポート</p>
+                  <h4 className="font-serif text-sm font-bold text-navy mb-0.5">エリア相場レポート</h4>
+                  <p className="font-display text-[9px] text-gold tracking-wider mb-3">AREA MARKET ANALYSIS</p>
+                  <div className="border-t border-gold mb-3" />
+                  {/* Mini chart mockup */}
+                  <div className="bg-gray-50 rounded p-2 mb-3 flex-shrink-0">
+                    <p className="text-[8px] text-navy font-bold text-center mb-1">宅地 坪単価推移（公示地価ベース）</p>
+                    <div className="flex items-end gap-1 h-12 justify-center">
+                      {[40, 42, 45, 50, 55, 60].map((h, i) => (
+                        <div key={i} className="flex flex-col items-center gap-0.5">
+                          <div className="w-3 rounded-t" style={{ height: `${h * 0.6}px`, backgroundColor: i === 5 ? '#c9a84c' : '#1a1a2e', opacity: 0.2 + i * 0.15 }} />
+                          <span className="text-[6px] text-gray-400">{2021 + i}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Area cards mockup */}
+                  <div className="grid grid-cols-2 gap-1.5 flex-1">
+                    {['A市', 'B町', 'C市', 'D町'].map((area) => (
+                      <div key={area} className="border border-gray-200 rounded p-1.5">
+                        <p className="text-[8px] font-bold text-navy border-b border-navy/20 pb-0.5 mb-1">{area}</p>
+                        <p className="text-[7px] text-gray-500">公示地価 ○○万円/m2</p>
+                        <p className="text-[7px] text-red-500">前年比 +X.X%</p>
+                        <p className="text-[7px] text-gray-400 mt-0.5">直近取引 ○○件</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 text-center">
+                <h3 className="font-serif text-sm font-bold text-navy">エリア相場レポート</h3>
+                <p className="text-gray-500 text-xs">坪単価推移・公示地価データ</p>
+              </div>
+            </div>
+
+            {/* Card 3: Area News */}
+            <div className="group">
+              <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden group-hover:shadow-xl group-hover:border-gold/30 transition-all duration-300 aspect-[3/4] flex flex-col">
+                <div className="bg-navy h-2" />
+                <div className="flex-1 p-4 flex flex-col">
+                  <p className="text-[8px] text-gray-400 mb-1">CHIYODA ESTATE | 不動産マーケットレポート</p>
+                  <h4 className="font-serif text-sm font-bold text-navy mb-0.5">まちの動き</h4>
+                  <p className="font-display text-[9px] text-gold tracking-wider mb-3">AREA NEWS &amp; DEVELOPMENT</p>
+                  <div className="border-t border-gold mb-3" />
+                  {/* Headline */}
+                  <div className="bg-gray-50 rounded p-2 mb-3">
+                    <span className="text-[7px] bg-navy text-white px-1.5 py-0.5 rounded font-bold">HEADLINE</span>
+                    <p className="text-[9px] text-navy font-bold mt-1">○○駅周辺の大型再開発が進行中</p>
+                  </div>
+                  {/* News items */}
+                  <div className="space-y-2 flex-1">
+                    {[
+                      { tag: '再開発', color: 'bg-red-500', title: '○○駅前 タワーマンション建設中' },
+                      { tag: '新施設', color: 'bg-blue-600', title: '○○アリーナ 開業予定' },
+                      { tag: '交通', color: 'bg-gold', title: '○○駅周辺の都市整備が進行' },
+                      { tag: '行政', color: 'bg-teal-600', title: '○○地区の区画整理事業' },
+                    ].map((item) => (
+                      <div key={item.tag} className="flex items-start gap-1.5">
+                        <span className={`text-[6px] text-white px-1 py-0.5 rounded flex-shrink-0 ${item.color}`}>{item.tag}</span>
+                        <div>
+                          <p className="text-[8px] text-navy font-bold leading-tight">{item.title}</p>
+                          <p className="text-[7px] text-gray-400">地価への影響分析付き</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 text-center">
+                <h3 className="font-serif text-sm font-bold text-navy">まちの動き</h3>
+                <p className="text-gray-500 text-xs">再開発・新施設・交通情報</p>
+              </div>
+            </div>
+
+            {/* Card 4: Analysis Report */}
+            <div className="group">
+              <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden group-hover:shadow-xl group-hover:border-gold/30 transition-all duration-300 aspect-[3/4] flex flex-col">
+                <div className="bg-navy h-2" />
+                <div className="flex-1 p-4 flex flex-col">
+                  <p className="text-[8px] text-gray-400 mb-1">CHIYODA ESTATE | 不動産マーケットレポート</p>
+                  <h4 className="font-serif text-sm font-bold text-navy mb-0.5">エリア分析レポート</h4>
+                  <p className="font-display text-[9px] text-gold tracking-wider mb-3">AREA ANALYSIS REPORT</p>
+                  <div className="border-t border-gold mb-3" />
+                  {/* Table mockup */}
+                  <p className="text-[8px] text-navy font-bold mb-1">1. エリア別：市場動向比較</p>
+                  <div className="border border-gray-200 rounded overflow-hidden mb-3 text-[7px]">
+                    <div className="grid grid-cols-3 bg-navy text-white">
+                      <div className="px-1.5 py-1 border-r border-navy-light">エリア</div>
+                      <div className="px-1.5 py-1 border-r border-navy-light">坪単価</div>
+                      <div className="px-1.5 py-1">特徴</div>
+                    </div>
+                    {['A市', 'B市', 'C町'].map((a) => (
+                      <div key={a} className="grid grid-cols-3 border-t border-gray-100">
+                        <div className="px-1.5 py-1 border-r border-gray-100 font-bold text-navy">{a}</div>
+                        <div className="px-1.5 py-1 border-r border-gray-100 text-gray-500">○○万円</div>
+                        <div className="px-1.5 py-1 text-gray-400">需要分析</div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Analysis points */}
+                  <p className="text-[8px] text-navy font-bold mb-1">2. 戦略的検討ポイント</p>
+                  <div className="space-y-1.5 flex-1">
+                    {['安定した需要の確保', '情報の先行取得が鍵', '再開発による将来性'].map((p) => (
+                      <div key={p} className="bg-gray-50 rounded px-2 py-1">
+                        <p className="text-[7px] text-navy font-bold">■ {p}</p>
+                        <p className="text-[6px] text-gray-400 mt-0.5">データに基づく具体的な提案...</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="bg-navy/5 rounded p-1.5 mt-2">
+                    <p className="text-[7px] text-navy font-bold">3. 担当者からのアドバイス</p>
+                    <p className="text-[6px] text-gray-400">金利動向・広域検討・タイミング</p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 text-center">
+                <h3 className="font-serif text-sm font-bold text-navy">エリア分析レポート</h3>
+                <p className="text-gray-500 text-xs">お客様専用の戦略的提案</p>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Feature badges */}
+          <div className="flex flex-wrap justify-center gap-3 mb-10">
+            {['毎月更新', 'お客様専用', '公示地価データ活用', '再開発情報', '成約事例分析'].map((badge) => (
+              <span key={badge} className="inline-flex items-center gap-1 text-xs text-navy bg-white border border-gold/30 rounded-full px-3 py-1">
+                <svg className="w-3 h-3 text-gold" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+                {badge}
+              </span>
             ))}
           </div>
 
