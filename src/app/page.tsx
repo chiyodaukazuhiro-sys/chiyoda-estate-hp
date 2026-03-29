@@ -179,6 +179,62 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Proposal Sample Section */}
+      <section className="py-20 bg-cream">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="font-display text-gold text-sm tracking-[0.2em] mb-2">PROPOSAL SAMPLE</p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-navy mb-4">
+              提案資料のご紹介
+            </h2>
+            <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+              ご紹介パートナー様にお渡ししている提案資料の一部をご覧いただけます。
+              <br className="hidden sm:inline" />
+              無料の物件探し代行サービスから、ご成約までの流れをまとめています。
+            </p>
+          </div>
+
+          {/* Proposal Pages */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-10">
+            {[
+              { src: "/images/proposal/proposal-1.jpg", label: "サービスのご紹介", desc: "物件探し代行・無料サービス・対応エリアのご案内" },
+              { src: "/images/proposal/proposal-2.jpg", label: "ご紹介の流れ・メリット", desc: "4ステップの紹介フローと御社にとってのメリット" },
+              { src: "/images/proposal/proposal-3.jpg", label: "会社概要・お問い合わせ", desc: "当社の強みと連絡先のご案内" },
+            ].map((page, i) => (
+              <div key={i} className="group">
+                <div className="relative bg-white rounded-lg shadow-md overflow-hidden border border-gray-100 group-hover:shadow-xl group-hover:border-gold/30 transition-all duration-300">
+                  <div className="relative aspect-[3/4]">
+                    <Image
+                      src={page.src}
+                      alt={page.label}
+                      fill
+                      className="object-cover object-top group-hover:scale-[1.02] transition-transform duration-500"
+                    />
+                  </div>
+                </div>
+                <div className="mt-4 text-center">
+                  <div className="text-gold font-display text-xs tracking-widest mb-1">PAGE {String(i + 1).padStart(2, "0")}</div>
+                  <h3 className="font-serif text-base font-bold text-navy mb-1">{page.label}</h3>
+                  <p className="text-gray-500 text-xs leading-relaxed">{page.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link
+              href="/contact"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-navy text-white font-bold rounded hover:bg-navy-light transition-colors duration-200"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+              資料請求・お問い合わせ
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Member CTA Banner */}
       <section className="relative py-16 sm:py-20 bg-gradient-to-r from-navy-dark via-navy to-navy-dark overflow-hidden">
         {/* Decorative elements */}
