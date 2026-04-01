@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { Analytics } from "@vercel/analytics/next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import "./globals.css";
@@ -31,6 +32,7 @@ export default async function RootLayout({
         {!isAdmin && <Header />}
         {isAdmin ? children : <main className="flex-1">{children}</main>}
         {!isAdmin && <Footer />}
+        <Analytics />
       </body>
     </html>
   );
