@@ -1,4 +1,4 @@
-import { google } from "googleapis";
+import { google, calendar_v3 } from "googleapis";
 
 function getCalendarClient() {
   const auth = new google.auth.GoogleAuth({
@@ -12,9 +12,15 @@ function getCalendarClient() {
   return google.calendar({ version: "v3", auth });
 }
 
-const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID === "primary"
-  ? (process.env.GMAIL_USER || "primary")
-  : (process.env.GOOGLE_CALENDAR_ID || process.env.GMAIL_USER || "primary");
+const PRIMARY_CALENDAR = process.env.GMAIL_USER || "primary";
+
+// 複数カレンダーを取得（環境変数またはデフォルト）
+function getCalendarIds(): string[] {
+  if (process.env.GOOGLE_CALENDAR_IDS) {
+    return process.env.GOOGLE_CALENDAR_IDS.split(",").map((s) => s.trim());
+  }
+  return [PRIMARY_CALENDAR];
+}
 
 export async function createEvent(params: {
   title: string;
@@ -27,8 +33,8 @@ export async function createEvent(params: {
   const startDateTime = `${params.date}T${params.startTime}:00`;
   const endDateTime = `${params.date}T${params.endTime}:00`;
 
-  const event = await calendar.events.insert({
-    calendarId: CALENDAR_ID,
+  await calendar.events.insert({
+    calendarId: PRIMARY_CALENDAR,
     requestBody: {
       summary: params.title,
       start: { dateTime: startDateTime, timeZone: "Asia/Tokyo" },
@@ -59,30 +65,40 @@ export async function createEvent(params: {
 
 export async function listEvents(date: string): Promise<string> {
   const calendar = getCalendarClient();
+  const calendarIds = getCalendarIds();
 
   const timeMin = `${date}T00:00:00+09:00`;
   const timeMax = `${date}T23:59:59+09:00`;
 
-  const res = await calendar.events.list({
-    calendarId: CALENDAR_ID,
-    timeMin,
-    timeMax,
-    singleEvents: true,
-    orderBy: "startTime",
-    timeZone: "Asia/Tokyo",
-  });
+  // 全カレンダーから並列で取得
+  const results = await Promise.allSettled(
+    calendarIds.map((calId) =>
+      calendar.events.list({
+        calendarId: calId,
+        timeMin,
+        timeMax,
+        singleEvents: true,
+        orderBy: "startTime",
+        timeZone: "Asia/Tokyo",
+      })
+    )
+  );
 
-  const events = res.data.items || [];
-
-  if (events.length === 0) {
-    const d = new Date(date);
-    const dateStr = d.toLocaleDateString("ja-JP", {
-      month: "numeric",
-      day: "numeric",
-      weekday: "short",
-    });
-    return `📅 ${dateStr}の予定\n\n予定はありません ✓`;
+  // 全カレンダーのイベントを統合
+  const allEvents: calendar_v3.Schema$Event[] = [];
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      const items = result.value.data.items || [];
+      allEvents.push(...items);
+    }
   }
+
+  // 時系列ソート
+  allEvents.sort((a, b) => {
+    const aTime = a.start?.dateTime || a.start?.date || "";
+    const bTime = b.start?.dateTime || b.start?.date || "";
+    return aTime.localeCompare(bTime);
+  });
 
   const d = new Date(date);
   const dateStr = d.toLocaleDateString("ja-JP", {
@@ -91,8 +107,12 @@ export async function listEvents(date: string): Promise<string> {
     weekday: "short",
   });
 
+  if (allEvents.length === 0) {
+    return `📅 ${dateStr}の予定\n\n予定はありません ✓`;
+  }
+
   let result = `📅 ${dateStr}の予定\n\n`;
-  for (const event of events) {
+  for (const event of allEvents) {
     if (event.start?.dateTime) {
       const start = new Date(event.start.dateTime);
       const end = event.end?.dateTime ? new Date(event.end.dateTime) : null;
