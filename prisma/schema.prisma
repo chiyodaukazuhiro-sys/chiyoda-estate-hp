@@ -70,3 +70,14 @@ model RequestNote {
   status    String?  // このメモで変更されたステータス（null=変更なし）
   createdAt DateTime @default(now())
 }
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  status      String    @default("pending") // pending, in_progress, done
+  priority    String    @default("normal")  // urgent, important, normal
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
