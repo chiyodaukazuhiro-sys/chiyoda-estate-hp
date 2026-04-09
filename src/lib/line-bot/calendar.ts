@@ -12,7 +12,9 @@ function getCalendarClient() {
   return google.calendar({ version: "v3", auth });
 }
 
-const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID || "primary";
+const CALENDAR_ID = process.env.GOOGLE_CALENDAR_ID === "primary"
+  ? (process.env.GMAIL_USER || "primary")
+  : (process.env.GOOGLE_CALENDAR_ID || process.env.GMAIL_USER || "primary");
 
 export async function createEvent(params: {
   title: string;
