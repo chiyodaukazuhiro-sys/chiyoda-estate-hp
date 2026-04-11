@@ -1,6 +1,7 @@
 import { ParsedIntent } from "@/lib/line-bot/intent-parser";
 import { createEvent, listEvents } from "@/lib/line-bot/calendar";
 import { createTask, listTasks, completeTask } from "@/lib/line-bot/tasks";
+import { createGoogleTask, listGoogleTasks, completeGoogleTask, isConnected } from "@/lib/google-tasks";
 import { saveMemo, searchMemos, listRecentMemos, deleteMemo } from "@/lib/line-bot/memos";
 import { generateBriefing } from "@/lib/line-bot/formatter";
 
@@ -45,15 +46,37 @@ export async function handleParsedIntent(
       const taskTitle = intent.params.taskTitle || intent.params.title || originalText;
       const priority = intent.params.priority || "normal";
       const dueDate = intent.params.date;
+      // Google Tasks連携済みならGoogle Tasksに、なければローカルDBに
+      if (await isConnected()) {
+        try {
+          return await createGoogleTask(taskTitle, undefined, dueDate);
+        } catch {
+          return await createTask(taskTitle, priority, dueDate);
+        }
+      }
       return await createTask(taskTitle, priority, dueDate);
     }
 
     case "task_list": {
+      if (await isConnected()) {
+        try {
+          return await listGoogleTasks();
+        } catch {
+          return await listTasks();
+        }
+      }
       return await listTasks();
     }
 
     case "task_done": {
       const query = intent.params.taskTitle || intent.params.title || originalText;
+      if (await isConnected()) {
+        try {
+          return await completeGoogleTask(query);
+        } catch {
+          return await completeTask(query);
+        }
+      }
       return await completeTask(query);
     }
 
