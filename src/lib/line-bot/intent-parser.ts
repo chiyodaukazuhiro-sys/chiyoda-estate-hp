@@ -107,7 +107,20 @@ function extractTitle(text: string): string {
 export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
   const msg = userMessage.trim().toLowerCase();
 
-  // Gemini API mode (if available)
+  // Groq API mode (if available) - priority 1
+  if (process.env.GROQ_API_KEY) {
+    try {
+      console.log("Using Groq API for intent parsing");
+      return await parseWithGroq(userMessage);
+    } catch (e) {
+      console.error("Groq API error:", e);
+      // Fall through to next option
+    }
+  } else {
+    console.log("GROQ_API_KEY not set, trying next option");
+  }
+
+  // Gemini API mode (if available) - priority 2
   if (process.env.GEMINI_API_KEY) {
     try {
       console.log("Using Gemini API for intent parsing");
@@ -116,11 +129,9 @@ export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
       console.error("Gemini API error:", e);
       // Fall through to keyword mode
     }
-  } else {
-    console.log("GEMINI_API_KEY not set, using keyword mode");
   }
 
-  // Claude API mode (if available)
+  // Claude API mode (if available) - priority 3
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       return await parseWithClaude(userMessage);
@@ -243,6 +254,70 @@ export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
       message: "了解です！\n\n何かお手伝いしましょうか？\n📅 予定 📋 タスク 📝 メモ 📊 ブリーフィング\nが使えます。",
     },
   };
+}
+
+async function parseWithGroq(userMessage: string): Promise<ParsedIntent> {
+  const { default: Groq } = await import("groq-sdk");
+  const client = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+  const now = new Date();
+  const todayStr = now.toLocaleDateString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  });
+
+  const systemPrompt = `あなたはLINE Botの意図解析エンジンです。ユーザーメッセージの意図をJSON形式で返してください。
+今日は${todayStr}、現在時刻は${now.toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo" })}です。
+
+JSONのみを返してください（説明不要、マークダウン不要）:
+{
+  "intent": "calendar_create" | "calendar_list" | "task_create" | "task_list" | "task_done" | "memo_save" | "memo_search" | "memo_list" | "memo_delete" | "briefing" | "general",
+  "params": {
+    "title": "予定のタイトル",
+    "date": "YYYY-MM-DD",
+    "startTime": "HH:MM",
+    "endTime": "HH:MM（不明なら開始+1時間）",
+    "priority": "urgent" | "important" | "normal",
+    "taskTitle": "タスク名",
+    "message": "メモ内容 or 検索クエリ or 汎用回答"
+  }
+}
+
+判定ルール:
+- 「明日14時に○○」→ calendar_create
+- 「今日の予定」「スケジュール」→ calendar_list
+- 「○○をタスクに」「○○やらなきゃ」→ task_create
+- 「タスク一覧」「やること」→ task_list
+- 「○○完了」「○○終わった」→ task_done
+- 「メモ: ○○」「覚えて」→ memo_save（message=メモ内容）
+- 「検索: ○○」「○○なんだっけ」→ memo_search（message=検索語）
+- 「メモ一覧」→ memo_list
+- 「おはよう」「ブリーフィング」→ briefing
+- それ以外 → general（messageに自然な日本語の返答を入れる）
+
+「明日」「来週」等は具体日付に変換。自然な会話にも対応し、generalの場合はmessageに適切で自然な日本語の返答を入れること。`;
+
+  const response = await client.chat.completions.create({
+    model: "llama-3.1-8b-instant",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userMessage },
+    ],
+    max_tokens: 500,
+    temperature: 0.1,
+  });
+
+  const text = response.choices[0]?.message?.content ?? "";
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    return JSON.parse(jsonMatch[0]) as ParsedIntent;
+  }
+
+  throw new Error("Failed to parse Groq response");
 }
 
 async function parseWithClaude(userMessage: string): Promise<ParsedIntent> {
