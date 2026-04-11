@@ -110,10 +110,14 @@ export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
   // Gemini API mode (if available)
   if (process.env.GEMINI_API_KEY) {
     try {
+      console.log("Using Gemini API for intent parsing");
       return await parseWithGemini(userMessage);
-    } catch {
+    } catch (e) {
+      console.error("Gemini API error:", e);
       // Fall through to keyword mode
     }
+  } else {
+    console.log("GEMINI_API_KEY not set, using keyword mode");
   }
 
   // Claude API mode (if available)
