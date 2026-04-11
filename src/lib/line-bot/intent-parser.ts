@@ -107,6 +107,20 @@ function extractTitle(text: string): string {
 export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
   const msg = userMessage.trim().toLowerCase();
 
+  // Priority 0: Critical keyword patterns (AI misinterpretation prevention)
+  if (/おはよう|おは$/.test(msg)) {
+    return { intent: "briefing", params: {} };
+  }
+  if (/タスク.*(教えて|一覧|確認|見せて|残|リスト)|やること|todo|残タスク/.test(msg)) {
+    return { intent: "task_list", params: {} };
+  }
+  if (/予定.*(教えて|確認|見せて)|スケジュール.*(教えて|確認|見せて)/.test(msg)) {
+    return { intent: "calendar_list", params: { date: resolveDate(msg) || formatDate(getJSTDate(0)) } };
+  }
+  if (/メモ一覧|メモ.*(見せて|教えて|確認)/.test(msg)) {
+    return { intent: "memo_list", params: {} };
+  }
+
   // Groq API mode (if available) - priority 1
   if (process.env.GROQ_API_KEY) {
     try {
