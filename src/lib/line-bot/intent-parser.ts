@@ -107,6 +107,15 @@ function extractTitle(text: string): string {
 export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
   const msg = userMessage.trim().toLowerCase();
 
+  // Gemini API mode (if available)
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      return await parseWithGemini(userMessage);
+    } catch {
+      // Fall through to keyword mode
+    }
+  }
+
   // Claude API mode (if available)
   if (process.env.ANTHROPIC_API_KEY) {
     try {
@@ -263,4 +272,62 @@ async function parseWithClaude(userMessage: string): Promise<ParsedIntent> {
   }
 
   throw new Error("Failed to parse Claude response");
+}
+
+async function parseWithGemini(userMessage: string): Promise<ParsedIntent> {
+  const { GoogleGenerativeAI } = await import("@google/generative-ai");
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+  const now = new Date();
+  const todayStr = now.toLocaleDateString("ja-JP", {
+    timeZone: "Asia/Tokyo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    weekday: "short",
+  });
+
+  const prompt = `あなたはLINE Botの意図解析エンジンです。ユーザーメッセージの意図をJSON形式で返してください。
+今日は${todayStr}、現在時刻は${now.toLocaleTimeString("ja-JP", { timeZone: "Asia/Tokyo" })}です。
+
+JSONのみを返してください（説明不要、マークダウン不要）:
+{
+  "intent": "calendar_create" | "calendar_list" | "task_create" | "task_list" | "task_done" | "memo_save" | "memo_search" | "memo_list" | "memo_delete" | "briefing" | "general",
+  "params": {
+    "title": "予定のタイトル",
+    "date": "YYYY-MM-DD",
+    "startTime": "HH:MM",
+    "endTime": "HH:MM（不明なら開始+1時間）",
+    "priority": "urgent" | "important" | "normal",
+    "taskTitle": "タスク名",
+    "message": "メモ内容 or 検索クエリ or 汎用回答"
+  }
+}
+
+判定ルール:
+- 「明日14時に○○」→ calendar_create
+- 「今日の予定」「スケジュール」→ calendar_list
+- 「○○をタスクに」「○○やらなきゃ」→ task_create
+- 「タスク一覧」「やること」→ task_list
+- 「○○完了」「○○終わった」→ task_done
+- 「メモ: ○○」「覚えて」→ memo_save（message=メモ内容）
+- 「検索: ○○」「○○なんだっけ」→ memo_search（message=検索語）
+- 「メモ一覧」→ memo_list
+- 「おはよう」「ブリーフィング」→ briefing
+- それ以外 → general（messageに自然な返答を入れる）
+
+「明日」「来週」等は具体日付に変換。自然な会話にも対応し、generalの場合はmessageに適切な返答を入れること。
+
+ユーザーメッセージ: ${userMessage}`;
+
+  const result = await model.generateContent(prompt);
+  const text = result.response.text();
+
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    return JSON.parse(jsonMatch[0]) as ParsedIntent;
+  }
+
+  throw new Error("Failed to parse Gemini response");
 }
