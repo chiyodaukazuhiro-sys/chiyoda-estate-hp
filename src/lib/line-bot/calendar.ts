@@ -63,12 +63,14 @@ export async function createEvent(params: {
   return `✅ 予定を登録しました\n📅 ${dateStr} ${startStr}-${endStr}\n📝 ${params.title}`;
 }
 
-export async function listEvents(date: string): Promise<string> {
+export async function listEvents(date: string, endDate?: string): Promise<string> {
   const calendar = getCalendarClient();
   const calendarIds = getCalendarIds();
 
   const timeMin = `${date}T00:00:00+09:00`;
-  const timeMax = `${date}T23:59:59+09:00`;
+  const timeMax = endDate
+    ? `${endDate}T23:59:59+09:00`
+    : `${date}T23:59:59+09:00`;
 
   // 全カレンダーから並列で取得
   const results = await Promise.allSettled(
@@ -100,19 +102,40 @@ export async function listEvents(date: string): Promise<string> {
     return aTime.localeCompare(bTime);
   });
 
+  const isMultiDay = !!endDate && endDate !== date;
+
   const d = new Date(date);
   const dateStr = d.toLocaleDateString("ja-JP", {
     month: "numeric",
     day: "numeric",
     weekday: "short",
   });
+  const headerLabel = isMultiDay
+    ? `${dateStr}〜の予定`
+    : `${dateStr}の予定`;
 
   if (allEvents.length === 0) {
-    return `📅 ${dateStr}の予定\n\n予定はありません ✓`;
+    return `📅 ${headerLabel}\n\n予定はありません ✓`;
   }
 
-  let result = `📅 ${dateStr}の予定\n\n`;
+  let result = `📅 ${headerLabel}（${allEvents.length}件）\n\n`;
+  let lastDateStr = "";
   for (const event of allEvents) {
+    // 複数日の場合、日付ヘッダーを挿入
+    if (isMultiDay) {
+      const eventDate = event.start?.dateTime || event.start?.date || "";
+      const evDateStr = new Date(eventDate).toLocaleDateString("ja-JP", {
+        month: "numeric",
+        day: "numeric",
+        weekday: "short",
+        timeZone: "Asia/Tokyo",
+      });
+      if (evDateStr !== lastDateStr) {
+        result += `\n── ${evDateStr} ──\n`;
+        lastDateStr = evDateStr;
+      }
+    }
+
     if (event.start?.dateTime) {
       const start = new Date(event.start.dateTime);
       const end = event.end?.dateTime ? new Date(event.end.dateTime) : null;

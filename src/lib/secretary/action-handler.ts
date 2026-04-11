@@ -39,7 +39,7 @@ export async function handleParsedIntent(
 
     case "calendar_list": {
       const date = intent.params.date || getTodayDateString();
-      return await listEvents(date);
+      return await listEvents(date, intent.params.endDate);
     }
 
     case "task_create": {

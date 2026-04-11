@@ -16,6 +16,7 @@ export interface ParsedIntent {
   params: {
     title?: string;
     date?: string; // YYYY-MM-DD
+    endDate?: string; // YYYY-MM-DD (for multi-day range)
     startTime?: string; // HH:MM
     endTime?: string; // HH:MM
     duration?: number; // minutes
@@ -163,11 +164,21 @@ export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
 
   // Calendar list (natural patterns)
   if (/予定|スケジュール|カレンダー|何がある|何かある|暇|空いて/.test(msg)) {
-    const date = resolveDate(msg) || formatDate(getJSTDate(0));
-    // Handle "今週" - return today's date but note it
+    // 「今週」= 今日〜日曜
     if (msg.includes("今週")) {
-      return { intent: "calendar_list", params: { date: formatDate(getJSTDate(0)) } };
+      const today = getJSTDate(0);
+      const dayOfWeek = today.getUTCDay();
+      const daysUntilSun = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+      return { intent: "calendar_list", params: { date: formatDate(today), endDate: formatDate(getJSTDate(daysUntilSun)) } };
     }
+    // 「来週」= 次の月曜〜日曜
+    if (msg.includes("来週")) {
+      const today = getJSTDate(0);
+      const dayOfWeek = today.getUTCDay();
+      const daysUntilMon = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+      return { intent: "calendar_list", params: { date: formatDate(getJSTDate(daysUntilMon)), endDate: formatDate(getJSTDate(daysUntilMon + 6)) } };
+    }
+    const date = resolveDate(msg) || formatDate(getJSTDate(0));
     return { intent: "calendar_list", params: { date } };
   }
 

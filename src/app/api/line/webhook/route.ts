@@ -53,7 +53,7 @@ async function handleMessage(
       case "calendar_list": {
         const date =
           parsed.params.date || getTodayDateString();
-        replyText = await listEvents(date);
+        replyText = await listEvents(date, parsed.params.endDate);
         break;
       }
 
