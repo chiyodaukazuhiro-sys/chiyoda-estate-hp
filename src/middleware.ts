@@ -30,6 +30,20 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-pathname", pathname);
 
+  // Secretary login - no auth needed
+  if (pathname.startsWith("/secretary/login")) {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  // Secretary routes - require secretary token
+  if (pathname.startsWith("/secretary")) {
+    const token = request.cookies.get("secretary-token")?.value;
+    if (!token || !(await verifyToken(token))) {
+      return NextResponse.redirect(new URL("/secretary/login", request.url));
+    }
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
   // Admin login - no auth needed, just pass through with headers
   if (pathname.startsWith("/admin/login")) {
     return NextResponse.next({ request: { headers: requestHeaders } });
@@ -58,5 +72,6 @@ export const config = {
     "/member/edit/:path*",
     "/member/dashboard/:path*",
     "/admin/:path*",
+    "/secretary/:path*",
   ],
 };
