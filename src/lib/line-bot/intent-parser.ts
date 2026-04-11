@@ -129,27 +129,53 @@ export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
     }
   }
 
-  // Keyword-based parsing
+  // Keyword-based parsing (enhanced for natural Japanese)
 
   // Briefing
-  if (/おはよう|ブリーフィング|まとめ|状況|レポート/.test(msg)) {
+  if (/おはよう|ブリーフィング|まとめ|状況|レポート|おは/.test(msg)) {
     return { intent: "briefing", params: {} };
   }
 
-  // Memo save (starts with "メモ:" or "メモ " or "記録")
-  if (/^(メモ[:：\s]|記録[:：\s]|覚えて)/.test(msg)) {
+  // Calendar list (natural patterns)
+  if (/予定|スケジュール|カレンダー|何がある|何かある|暇|空いて/.test(msg)) {
+    const date = resolveDate(msg) || formatDate(getJSTDate(0));
+    // Handle "今週" - return today's date but note it
+    if (msg.includes("今週")) {
+      return { intent: "calendar_list", params: { date: formatDate(getJSTDate(0)) } };
+    }
+    return { intent: "calendar_list", params: { date } };
+  }
+
+  // Calendar create (natural patterns with time)
+  if (/\d{1,2}時|\d{1,2}:\d{2}|予定入れ|予定を入れ|予定追加|に行く|打ち合わせ|ミーティング|会議|面談|アポ/.test(msg)) {
+    const times = resolveTime(userMessage);
+    const date = resolveDate(userMessage) || formatDate(getJSTDate(0));
+    const title = extractTitle(userMessage);
+    if (times.startTime) {
+      return { intent: "calendar_create", params: { title, date, ...times } };
+    }
+    // No time specified - create as task instead
+    return { intent: "task_create", params: { taskTitle: title, priority: "normal", date } };
+  }
+
+  // Memo save (natural patterns)
+  if (/^(メモ[:：\s]|記録[:：\s]|覚えて|忘れない|メモして)/.test(msg) || /って覚えて|を覚えて|をメモ/.test(msg)) {
     const content = userMessage
-      .replace(/^(メモ[:：\s]?|記録[:：\s]?|覚えて[:：\s]?)/i, "")
+      .replace(/^(メモ[:：\s]?|記録[:：\s]?|覚えて[:：\s]?|メモして[:：\s]?)/i, "")
+      .replace(/って覚えて|を覚えて|をメモして?|忘れないで/g, "")
       .trim();
     return { intent: "memo_save", params: { message: content || userMessage } };
   }
 
   // Memo search
-  if (/^(検索[:：\s]|メモ検索|思い出して|なんだっけ)/.test(msg)) {
+  if (/^(検索[:：\s]|メモ検索|思い出して|なんだっけ)|って何|について|どうだっけ/.test(msg)) {
     const query = msg
       .replace(/^(検索[:：\s]?|メモ検索[:：\s]?|思い出して[:：\s]?|なんだっけ[:：\s]?)/g, "")
+      .replace(/って何だっけ|って何|について教えて|はどうだっけ|を教えて/g, "")
       .trim();
-    return { intent: "memo_search", params: { message: query || "" } };
+    if (query.length > 0) {
+      return { intent: "memo_search", params: { message: query } };
+    }
   }
 
   // Memo list
@@ -164,22 +190,22 @@ export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
   }
 
   // Task done
-  if (/完了|終わった|done|済み/.test(msg)) {
+  if (/完了|終わった|done|済み|できた|やった/.test(msg)) {
     const taskTitle = msg
-      .replace(/完了|終わった|done|済み|した|を|が/g, "")
+      .replace(/完了|終わった|done|済み|した|できた|やった|を|が/g, "")
       .trim();
     return { intent: "task_done", params: { taskTitle: taskTitle || msg } };
   }
 
   // Task list
-  if (/タスク一覧|タスクリスト|やること|todo|タスク確認/.test(msg)) {
+  if (/タスク一覧|タスクリスト|やること|todo|タスク確認|やるべき/.test(msg)) {
     return { intent: "task_list", params: {} };
   }
 
-  // Task create
-  if (/タスク|追加|やらなきゃ|しなきゃ|登録/.test(msg)) {
+  // Task create (natural patterns)
+  if (/タスク|やらなきゃ|しなきゃ|しないと|しなければ|必要|忘れず/.test(msg)) {
     const taskTitle = msg
-      .replace(/をタスクに追加|をタスクに登録|をタスク|タスク追加|タスクに追加|を追加|を登録/g, "")
+      .replace(/をタスクに追加|をタスクに登録|をタスク|タスク追加|タスクに追加|を追加|を登録|やらなきゃ|しなきゃ|しないと|しなければ|必要|忘れず/g, "")
       .trim();
     const priority = /緊急|急ぎ/.test(msg)
       ? "urgent"
@@ -192,31 +218,29 @@ export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
     };
   }
 
-  // Calendar list
-  if (/予定(は|を)?$|スケジュール|カレンダー|何がある/.test(msg)) {
-    return {
-      intent: "calendar_list",
-      params: { date: resolveDate(msg) || formatDate(getJSTDate(0)) },
-    };
+  // General - natural conversation responses
+  const generalResponses: Record<string, string> = {
+    "調子": "絶好調です！何かお手伝いできることはありますか？",
+    "ありがとう": "どういたしまして！他にも何かあればいつでもどうぞ。",
+    "お疲れ": "お疲れ様です！今日もお疲れ様でした。",
+    "こんにちは": "こんにちは！何かお手伝いしましょうか？",
+    "こんばんは": "こんばんは！今日もお疲れ様です。",
+    "ヘルプ": "📅 予定: 「明日14時に○○」\n📋 タスク: 「○○しなきゃ」\n📝 メモ: 「○○を覚えて」\n🔍 検索: 「○○って何だっけ」\n📊 朝の報告: 「おはよう」",
+    "使い方": "📅 予定: 「明日14時に○○」\n📋 タスク: 「○○しなきゃ」\n📝 メモ: 「○○を覚えて」\n🔍 検索: 「○○って何だっけ」\n📊 朝の報告: 「おはよう」",
+    "テスト": "動いてます！何でも聞いてください。",
+  };
+
+  for (const [keyword, response] of Object.entries(generalResponses)) {
+    if (msg.includes(keyword)) {
+      return { intent: "general", params: { message: response } };
+    }
   }
 
-  // Calendar create (contains time reference)
-  if (/\d{1,2}時|\d{1,2}:\d{2}|予定入れ|予定を入れ|予定追加/.test(msg)) {
-    const times = resolveTime(userMessage);
-    const date = resolveDate(userMessage) || formatDate(getJSTDate(0));
-    const title = extractTitle(userMessage);
-    return {
-      intent: "calendar_create",
-      params: { title, date, ...times },
-    };
-  }
-
-  // General
+  // Default fallback
   return {
     intent: "general",
     params: {
-      message:
-        "了解しました。\n\n使い方:\n📅 予定登録: 「明日14時に○○」\n📋 タスク追加: 「○○をタスクに追加」\n📝 メモ保存: 「メモ: ○○」\n🔍 メモ検索: 「検索: ○○」\n📊 ブリーフィング: 「おはよう」",
+      message: "了解です！\n\n何かお手伝いしましょうか？\n📅 予定 📋 タスク 📝 メモ 📊 ブリーフィング\nが使えます。",
     },
   };
 }
