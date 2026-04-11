@@ -19,6 +19,8 @@ export default async function RootLayout({
   const headerList = await headers();
   const pathname = headerList.get("x-pathname") ?? "";
   const isAdmin = pathname.startsWith("/admin");
+  const isSecretary = pathname.startsWith("/secretary");
+  const isStandalone = isAdmin || isSecretary;
 
   return (
     <html lang="ja">
@@ -28,10 +30,10 @@ export default async function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={isAdmin ? "antialiased" : "antialiased flex flex-col min-h-screen"}>
-        {!isAdmin && <Header />}
-        {isAdmin ? children : <main className="flex-1">{children}</main>}
-        {!isAdmin && <Footer />}
+      <body className={isStandalone ? "antialiased" : "antialiased flex flex-col min-h-screen"}>
+        {!isStandalone && <Header />}
+        {isStandalone ? children : <main className="flex-1">{children}</main>}
+        {!isStandalone && <Footer />}
         <Analytics />
       </body>
     </html>
