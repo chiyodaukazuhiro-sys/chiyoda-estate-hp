@@ -4,6 +4,7 @@ import { getLineClient, OWNER_LINE_USER_ID } from "@/lib/line-bot/config";
 import { parseIntent } from "@/lib/line-bot/intent-parser";
 import { createEvent, listEvents } from "@/lib/line-bot/calendar";
 import { createTask, listTasks, completeTask } from "@/lib/line-bot/tasks";
+import { saveMemo, searchMemos, listRecentMemos, deleteMemo } from "@/lib/line-bot/memos";
 import { generateBriefing } from "@/lib/line-bot/formatter";
 
 function verifySignature(body: string, signature: string): boolean {
@@ -72,6 +73,29 @@ async function handleMessage(
       case "task_done": {
         const query = parsed.params.taskTitle || parsed.params.title || text;
         replyText = await completeTask(query);
+        break;
+      }
+
+      case "memo_save": {
+        const content = parsed.params.message || text;
+        replyText = await saveMemo(content);
+        break;
+      }
+
+      case "memo_search": {
+        const query = parsed.params.message || text;
+        replyText = await searchMemos(query);
+        break;
+      }
+
+      case "memo_list": {
+        replyText = await listRecentMemos();
+        break;
+      }
+
+      case "memo_delete": {
+        const q = parsed.params.message || text;
+        replyText = await deleteMemo(q);
         break;
       }
 

@@ -4,6 +4,10 @@ export type IntentType =
   | "task_create"
   | "task_list"
   | "task_done"
+  | "memo_save"
+  | "memo_search"
+  | "memo_list"
+  | "memo_delete"
   | "briefing"
   | "general";
 
@@ -119,6 +123,33 @@ export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
     return { intent: "briefing", params: {} };
   }
 
+  // Memo save (starts with "メモ:" or "メモ " or "記録")
+  if (/^(メモ[:：\s]|記録[:：\s]|覚えて)/.test(msg)) {
+    const content = userMessage
+      .replace(/^(メモ[:：\s]?|記録[:：\s]?|覚えて[:：\s]?)/i, "")
+      .trim();
+    return { intent: "memo_save", params: { message: content || userMessage } };
+  }
+
+  // Memo search
+  if (/^(検索[:：\s]|メモ検索|思い出して|なんだっけ)/.test(msg)) {
+    const query = msg
+      .replace(/^(検索[:：\s]?|メモ検索[:：\s]?|思い出して[:：\s]?|なんだっけ[:：\s]?)/g, "")
+      .trim();
+    return { intent: "memo_search", params: { message: query || "" } };
+  }
+
+  // Memo list
+  if (/メモ一覧|メモリスト|最近のメモ/.test(msg)) {
+    return { intent: "memo_list", params: {} };
+  }
+
+  // Memo delete
+  if (/メモ削除|メモを消/.test(msg)) {
+    const query = msg.replace(/メモ削除[:：\s]?|メモを消す?[:：\s]?/g, "").trim();
+    return { intent: "memo_delete", params: { message: query } };
+  }
+
   // Task done
   if (/完了|終わった|done|済み/.test(msg)) {
     const taskTitle = msg
@@ -172,7 +203,7 @@ export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
     intent: "general",
     params: {
       message:
-        "了解しました。\n\n使い方:\n📅 予定登録: 「明日14時に○○」\n📋 タスク追加: 「○○をタスクに追加」\n📝 タスク一覧: 「タスク一覧」\n✅ タスク完了: 「○○完了」\n📊 ブリーフィング: 「おはよう」",
+        "了解しました。\n\n使い方:\n📅 予定登録: 「明日14時に○○」\n📋 タスク追加: 「○○をタスクに追加」\n📝 メモ保存: 「メモ: ○○」\n🔍 メモ検索: 「検索: ○○」\n📊 ブリーフィング: 「おはよう」",
     },
   };
 }

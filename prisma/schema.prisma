@@ -81,3 +81,12 @@ model Task {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
+
+model Memo {
+  id        String   @id @default(cuid())
+  content   String
+  category  String   @default("general") // business, investment, corporate, family, personal, general
+  tags      String?  // カンマ区切りタグ
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
